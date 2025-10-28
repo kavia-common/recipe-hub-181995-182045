@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
 
 from .db import init_db
 from .routers.recipes import router as recipes_router
@@ -16,9 +17,18 @@ app = FastAPI(
     openapi_tags=openapi_tags,
 )
 
+# CORS configuration:
+# - Allows local frontend by default (http://localhost:3000)
+# - Can be overridden via BACKEND_CORS_ORIGINS env var (comma-separated list)
+cors_env = os.getenv("BACKEND_CORS_ORIGINS")
+if cors_env:
+    allow_origins = [o.strip() for o in cors_env.split(",") if o.strip()]
+else:
+    allow_origins = ["http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +41,12 @@ def on_startup():
     init_db()
 
 
-@app.get("/", tags=["Health"], summary="Health Check", description="Check service health")
+@app.get(
+    "/",
+    tags=["Health"],
+    summary="Health Check",
+    description="Check service health",
+)
 def health_check():
     """Return service health information."""
     return {"message": "Healthy"}
